@@ -72,7 +72,7 @@
             resultDiv.style.color = "black";
 
             // gemini-1.5-flash を使用
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
             const prompt = `以下の商品を楽天ROOMで紹介するための、魅力的でクリックしたくなるような短い紹介文（140文字以内）を作成してください。絵文字とハッシュタグも含めてください。\n商品名: ${item}`;
 
             try {
