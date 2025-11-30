@@ -117,24 +117,19 @@
   font-size: 0.9rem;
 }
 
-/* URL Form */
-.url-form {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.url-input {
-  flex: 1;
+/* URL Input Full Width */
+.url-input-full {
+  width: 100%;
   padding: 0.8rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 1rem;
 }
 
-.url-submit-btn {
-  width: auto;
-  padding: 0.8rem 1.5rem;
+/* Full Width Button */
+.full-width-btn {
+  width: 100%;
+  padding: 0.8rem;
   white-space: nowrap;
 }
 
@@ -187,18 +182,6 @@
   .price-separator {
     display: none;
   }
-
-  .url-form {
-    flex-direction: column;
-  }
-
-  .url-input {
-    width: 100%;
-  }
-
-  .url-submit-btn {
-    width: 100%;
-  }
 }
 
 /* Existing Styles */
@@ -247,6 +230,7 @@ header {
   color: var(--primary);
   text-decoration: none;
   cursor: pointer;
+  transition: 0.2s;
 }
 
 .logo:hover {
