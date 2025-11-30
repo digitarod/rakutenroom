@@ -80,41 +80,61 @@
 
         <!-- Tab Content: Ranking -->
         <div id="tab-ranking" class="tab-content active">
-          <div class="search-input-group">
-            <select id="ranking-genre" onchange="loadRankingByGenre()">
-              <option value="211742">家電</option>
-              <option value="100371">レディース</option>
-              <option value="100227">食品</option>
-              <option value="100939">コスメ</option>
-              <option value="100804">インテリア</option>
-              <option value="101240">CD・DVD</option>
-              <option value="100026">パソコン・周辺機器</option>
-            </select>
-            <button class="btn search-btn" onclick="loadRankingByGenre()">表示</button>
+          <div class="filter-section">
+            <div class="filter-row">
+              <select id="ranking-genre" class="filter-select">
+                <!-- ジャンルは動的読み込み -->
+              </select>
+            </div>
+            <div class="filter-row">
+              <label class="filter-label">価格帯</label>
+              <input type="number" id="ranking-min-price" placeholder="最低価格" class="price-input">
+              <span class="price-separator">〜</span>
+              <input type="number" id="ranking-max-price" placeholder="最高価格" class="price-input">
+              <span class="price-unit">円</span>
+            </div>
+            <button class="btn search-btn" onclick="loadRankingByGenre()"><i class="fas fa-search"></i> 表示</button>
           </div>
         </div>
 
         <!-- Tab Content: Search -->
         <div id="tab-search" class="tab-content hidden">
           <form onsubmit="handleSearch(event, 'keyword')" class="search-form">
-            <div class="search-input-group">
-              <input type="text" id="search-keyword" placeholder="商品名を入力..." required>
+            <div class="filter-section">
+              <div class="filter-row">
+                <input type="text" id="search-keyword" placeholder="商品名を入力..." required class="search-input">
+              </div>
+              <div class="filter-row">
+                <select id="search-genre" class="filter-select">
+                  <option value="">全ジャンル</option>
+                  <!-- ジャンルは動的読み込み -->
+                </select>
+              </div>
+              <div class="filter-row">
+                <label class="filter-label">価格帯</label>
+                <input type="number" id="search-min-price" placeholder="最低価格" class="price-input">
+                <span class="price-separator">〜</span>
+                <input type="number" id="search-max-price" placeholder="最高価格" class="price-input">
+                <span class="price-unit">円</span>
+              </div>
+              <button type="submit" class="btn search-btn"><i class="fas fa-search"></i> 検索</button>
             </div>
-            <button type="submit" class="btn search-btn">検索</button>
           </form>
         </div>
 
         <!-- Tab Content: URL -->
         <div id="tab-url" class="tab-content hidden">
           <form onsubmit="handleSearch(event, 'url')" class="search-form">
-            <div class="search-input-group">
-              <input type="url" id="search-url" placeholder="楽天市場の商品URLを貼り付け..." required>
+            <div class="filter-section">
+              <div class="filter-row">
+                <input type="url" id="search-url" placeholder="楽天市場の商品URLを貼り付け..." required class="search-input">
+              </div>
+              <button type="submit" class="btn search-btn"><i class="fas fa-magic"></i> 投稿文を作成</button>
+              <p style="font-size:0.8rem; color:#666; margin-top:0.5rem;">
+                例: https://item.rakuten.co.jp/shop/item/
+              </p>
             </div>
-            <button type="submit" class="btn search-btn">作成</button>
           </form>
-          <p style="font-size:0.8rem; color:#666; margin-top:0.5rem;">
-            例: https://item.rakuten.co.jp/shop/item/
-          </p>
         </div>
       </div>
 
@@ -125,6 +145,13 @@
           <p>商品検索、URL投稿、AIキャラクター設定など、便利な機能が解放されます。</p>
           <button class="btn promo-btn" onclick="showSettings()">設定からアップグレード</button>
         </div>
+      </div>
+
+      <!-- Home Refresh Button (for Free users) -->
+      <div id="home-refresh" class="home-refresh hidden">
+        <button class="btn refresh-btn" onclick="loadDashboardData()">
+          <i class="fas fa-sync-alt"></i> 新しいジャンルを表示
+        </button>
       </div>
 
       <div id="dashboard-content">
