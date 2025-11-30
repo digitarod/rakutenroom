@@ -1,7 +1,7 @@
 // State
 let currentUser = null;
 // GASのURLをハードコーディング
-const API_URL = 'https://script.google.com/macros/s/AKfycbwUHfnXJtKs36xTuk0Zf9qNzOAXPLdlrJBJjUNQuII0R201hKgC1RcsR4CRQb_zwuLC/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzLAvRuAAw4wsq9rv24vqXGKc7TgDLpHtrDULO42aY89za-y0_dwFB-aBxpLiOrCTqs/exec';
 
 // Init
 window.onload = function () {
