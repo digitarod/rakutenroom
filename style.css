@@ -117,6 +117,27 @@
   font-size: 0.9rem;
 }
 
+/* URL Form */
+.url-form {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.url-input {
+  flex: 1;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.url-submit-btn {
+  width: auto;
+  padding: 0.8rem 1.5rem;
+  white-space: nowrap;
+}
+
 /* Home Refresh Button */
 .home-refresh {
   text-align: center;
@@ -166,6 +187,18 @@
   .price-separator {
     display: none;
   }
+
+  .url-form {
+    flex-direction: column;
+  }
+
+  .url-input {
+    width: 100%;
+  }
+
+  .url-submit-btn {
+    width: 100%;
+  }
 }
 
 /* Existing Styles */
@@ -213,6 +246,11 @@ header {
   font-weight: 700;
   color: var(--primary);
   text-decoration: none;
+  cursor: pointer;
+}
+
+.logo:hover {
+  opacity: 0.8;
 }
 
 .user-menu {
