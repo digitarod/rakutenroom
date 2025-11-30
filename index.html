@@ -70,13 +70,18 @@
     <!-- Dashboard View -->
     <div id="dashboard-view" style="display: none;">
 
-      <!-- Premium Search Bar -->
-      <div id="search-section" class="search-container hidden">
-        <form onsubmit="handleSearch(event)" class="search-form">
+      <!-- Premium Toolbar -->
+      <div id="premium-toolbar" class="premium-toolbar hidden">
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('ranking')"><i class="fas fa-trophy"></i> ランキング</button>
+          <button class="tab-btn" onclick="switchTab('search')"><i class="fas fa-search"></i> 商品検索</button>
+          <button class="tab-btn" onclick="switchTab('url')"><i class="fas fa-link"></i> URL投稿</button>
+        </div>
+
+        <!-- Tab Content: Ranking -->
+        <div id="tab-ranking" class="tab-content active">
           <div class="search-input-group">
-            <input type="text" id="search-keyword" placeholder="キーワードまたは楽天市場のURLを入力..." required>
-            <select id="search-genre">
-              <option value="">全ジャンル</option>
+            <select id="ranking-genre" onchange="loadRankingByGenre()">
               <option value="211742">家電</option>
               <option value="100371">レディース</option>
               <option value="100227">食品</option>
@@ -85,9 +90,32 @@
               <option value="101240">CD・DVD</option>
               <option value="100026">パソコン・周辺機器</option>
             </select>
+            <button class="btn search-btn" onclick="loadRankingByGenre()">表示</button>
           </div>
-          <button type="submit" class="btn search-btn"><i class="fas fa-search"></i> 検索</button>
-        </form>
+        </div>
+
+        <!-- Tab Content: Search -->
+        <div id="tab-search" class="tab-content hidden">
+          <form onsubmit="handleSearch(event, 'keyword')" class="search-form">
+            <div class="search-input-group">
+              <input type="text" id="search-keyword" placeholder="商品名を入力..." required>
+            </div>
+            <button type="submit" class="btn search-btn">検索</button>
+          </form>
+        </div>
+
+        <!-- Tab Content: URL -->
+        <div id="tab-url" class="tab-content hidden">
+          <form onsubmit="handleSearch(event, 'url')" class="search-form">
+            <div class="search-input-group">
+              <input type="url" id="search-url" placeholder="楽天市場の商品URLを貼り付け..." required>
+            </div>
+            <button type="submit" class="btn search-btn">作成</button>
+          </form>
+          <p style="font-size:0.8rem; color:#666; margin-top:0.5rem;">
+            例: https://item.rakuten.co.jp/shop/item/
+          </p>
+        </div>
       </div>
 
       <!-- Premium Promo (Visible for Free users) -->
@@ -120,15 +148,17 @@
 
       <div class="settings-section">
         <h3>プラン設定</h3>
-        <div class="plan-toggle">
-          <span id="plan-label-free" class="plan-label active">Free</span>
-          <label class="switch">
-            <input type="checkbox" id="plan-toggle-input" onchange="togglePlan()">
-            <span class="slider round"></span>
+        <div class="plan-selection">
+          <label class="plan-option">
+            <input type="radio" name="plan" value="Free" onchange="togglePlan()">
+            <span class="plan-name">Free</span>
           </label>
-          <span id="plan-label-premium" class="plan-label"><i class="fas fa-crown"></i> Premium</span>
+          <label class="plan-option">
+            <input type="radio" name="plan" value="Premium" onchange="togglePlan()">
+            <span class="plan-name premium-text"><i class="fas fa-crown"></i> Premium</span>
+          </label>
         </div>
-        <p class="settings-desc">スイッチをONにするとプレミアム機能（検索、URL投稿、カスタムAI）が有効になります。</p>
+        <p class="settings-desc">Premiumにすると、検索機能・URL投稿・カスタムAIが有効になります。</p>
       </div>
 
       <div id="premium-settings" class="settings-section hidden">
