@@ -1,13 +1,15 @@
 // State
 let currentUser = null;
 // GASのURLをハードコーディング
-const API_URL = 'https://script.google.com/macros/s/AKfycbwnjcvWp50ZiJrzVWfODy8T6LCNO-yJsM_hIHPUvdx7ZEorCYVGsPykuVmDt8-7HOpO/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxv_Qa9NQT8psN6LEv84wtfR1TpIJygDxFbNFtAoslEaYqMK5guzZmhLneb360AJDnU/exec';
 
 // Init
 window.onload = function () {
     const savedUser = localStorage.getItem('room_user');
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
+        // 後方互換性: 古いデータにplanがない場合はFreeとする
+        if (!currentUser.plan) currentUser.plan = 'Free';
         showDashboard();
     } else {
         showLogin();
@@ -51,6 +53,8 @@ function showDashboard() {
     document.getElementById('dashboard-view').style.display = 'block';
     document.getElementById('app-header').classList.remove('hidden');
     document.getElementById('header-email').textContent = currentUser.email;
+
+    updatePremiumUI();
     loadDashboardData();
 }
 
@@ -65,6 +69,57 @@ function logout() {
     localStorage.removeItem('room_user');
     currentUser = null;
     showLogin();
+}
+
+function showSettings() {
+    const modal = document.getElementById('settings-modal');
+    modal.style.display = 'flex';
+
+    // 現在の設定を反映
+    const isPremium = currentUser.plan === 'Premium';
+    document.getElementById('plan-toggle-input').checked = isPremium;
+    document.getElementById('custom-prompt').value = currentUser.customPrompt || '';
+
+    updateSettingsUI(isPremium);
+}
+
+function closeSettings() {
+    document.getElementById('settings-modal').style.display = 'none';
+}
+
+function togglePlan() {
+    const isPremium = document.getElementById('plan-toggle-input').checked;
+    updateSettingsUI(isPremium);
+}
+
+function updateSettingsUI(isPremium) {
+    const freeLabel = document.getElementById('plan-label-free');
+    const premiumLabel = document.getElementById('plan-label-premium');
+    const premiumSettings = document.getElementById('premium-settings');
+
+    if (isPremium) {
+        freeLabel.classList.remove('active');
+        premiumLabel.classList.add('active');
+        premiumSettings.classList.remove('hidden');
+    } else {
+        freeLabel.classList.add('active');
+        premiumLabel.classList.remove('active');
+        premiumSettings.classList.add('hidden');
+    }
+}
+
+function updatePremiumUI() {
+    const isPremium = currentUser.plan === 'Premium';
+    const searchSection = document.getElementById('search-section');
+    const promoBanner = document.getElementById('premium-promo');
+
+    if (isPremium) {
+        searchSection.classList.remove('hidden');
+        promoBanner.classList.add('hidden');
+    } else {
+        searchSection.classList.add('hidden');
+        promoBanner.classList.remove('hidden');
+    }
 }
 
 // Handlers
@@ -117,8 +172,70 @@ async function handleRegister(e) {
     }
 }
 
+async function saveSettings() {
+    const btn = document.getElementById('save-settings-btn');
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+
+    const isPremium = document.getElementById('plan-toggle-input').checked;
+    const plan = isPremium ? 'Premium' : 'Free';
+    const customPrompt = document.getElementById('custom-prompt').value;
+
+    try {
+        const res = await callApi('updateProfile', {
+            email: currentUser.email,
+            plan: plan,
+            customPrompt: customPrompt
+        });
+
+        if (res.success) {
+            currentUser = res.user;
+            localStorage.setItem('room_user', JSON.stringify(currentUser));
+            showToast('設定を保存しました');
+            closeSettings();
+            updatePremiumUI();
+            // 設定変更後はダッシュボードをリロードして反映させる
+            loadDashboardData();
+        } else {
+            showToast(res.message);
+        }
+    } catch (err) {
+        showToast('エラー: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '保存する';
+    }
+}
+
+async function handleSearch(e) {
+    e.preventDefault();
+    const keyword = document.getElementById('search-keyword').value;
+    const genreId = document.getElementById('search-genre').value;
+    const container = document.getElementById('dashboard-content');
+
+    container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">検索中...</div>';
+
+    try {
+        const res = await callApi('searchItems', { keyword, genreId });
+        if (res.success) {
+            container.innerHTML = '';
+            if (res.data.length > 0) {
+                renderGenreSection(container, `検索結果: ${keyword}`, res.data);
+            } else {
+                container.innerHTML = '<div style="text-align:center; padding:2rem;">該当する商品が見つかりませんでした。</div>';
+            }
+        } else {
+            throw new Error(res.message);
+        }
+    } catch (err) {
+        container.innerHTML = `<div style="color:red; text-align:center">検索エラー: ${err.message}</div>`;
+    }
+}
+
 async function loadDashboardData() {
     const container = document.getElementById('dashboard-content');
+    // 検索結果が表示されている場合はリロードしない（簡易実装）
+    // ただし、初期表示や設定変更後はリロードしたい
     container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">商品を読み込み中...</div>';
 
     try {
@@ -142,7 +259,7 @@ function renderGenreSection(container, genreName, items) {
     const section = document.createElement('div');
     section.innerHTML = `
     <div class="section-header">
-      ${genreName} <span class="genre-badge">Ranking</span>
+      ${genreName} 
     </div>
     <div class="grid">
       ${items.map((item, idx) => `
@@ -173,7 +290,10 @@ function openItemModal(item) {
     <div style="text-align:center; color:#666;">AI紹介文を生成中...</div>
   `;
 
-    callApi('generateRecommendation', { itemName: item.name })
+    // カスタムプロンプトを渡す
+    const customPrompt = currentUser.plan === 'Premium' ? currentUser.customPrompt : '';
+
+    callApi('generateRecommendation', { itemName: item.name, customPrompt: customPrompt })
         .then(res => {
             if (!res.success) throw new Error(res.message);
 
@@ -205,18 +325,14 @@ function openItemModal(item) {
 function copyAndOpen(url) {
     const text = document.getElementById('copy-target').innerText;
 
-    // モバイル対応: ポップアップブロックを回避するため、非同期処理(setTimeout)を使わずに遷移する
-    // クリップボード書き込みは試みるが、失敗しても遷移を優先する
     navigator.clipboard.writeText(text)
         .then(() => {
             showToast('コピーしました！ROOMを開きます...');
-            // アプリへのディープリンクは location.href の方が確実に動作する場合が多い
             window.location.href = url;
         })
         .catch(err => {
             console.error('Copy failed', err);
             showToast('コピーに失敗しました。手動でコピーしてください。');
-            // コピー失敗してもROOMは開く
             window.location.href = url;
         });
 }
