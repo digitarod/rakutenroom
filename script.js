@@ -1,26 +1,22 @@
 // State
 let currentUser = null;
-let API_URL = localStorage.getItem('gas_api_url');
+// GASのURLをハードコーディング
+const API_URL = 'https://script.google.com/macros/s/AKfycbwnjcvWp50ZiJrzVWfODy8T6LCNO-yJsM_hIHPUvdx7ZEorCYVGsPykuVmDt8-7HOpO/exec';
 
 // Init
 window.onload = function () {
-    if (!API_URL) {
-        showSetup();
+    // API_URLチェックは不要になったため削除
+    const savedUser = localStorage.getItem('room_user');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showDashboard();
     } else {
-        const savedUser = localStorage.getItem('room_user');
-        if (savedUser) {
-            currentUser = JSON.parse(savedUser);
-            showDashboard();
-        } else {
-            showLogin();
-        }
+        showLogin();
     }
 };
 
 // API Helper
 async function callApi(action, params = {}, method = 'POST') {
-    if (!API_URL) throw new Error('API URL is not set');
-
     let url = API_URL;
     let options = {
         method: method,
@@ -41,24 +37,7 @@ async function callApi(action, params = {}, method = 'POST') {
 }
 
 // Navigation
-function showSetup() {
-    hideAll();
-    document.getElementById('setup-view').classList.remove('hidden');
-}
-
-function saveApiUrl(e) {
-    e.preventDefault();
-    const url = document.getElementById('setup-url').value;
-    localStorage.setItem('gas_api_url', url);
-    API_URL = url;
-    showLogin();
-}
-
-function resetSetup() {
-    localStorage.removeItem('gas_api_url');
-    API_URL = null;
-    showSetup();
-}
+// Setup関連の関数は削除
 
 function showLogin() {
     hideAll();
@@ -79,7 +58,7 @@ function showDashboard() {
 }
 
 function hideAll() {
-    document.getElementById('setup-view').classList.add('hidden');
+    // setup-view 削除
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('register-view').classList.add('hidden');
     document.getElementById('dashboard-view').style.display = 'none';
@@ -123,15 +102,14 @@ async function handleRegister(e) {
     e.preventDefault();
     const email = document.getElementById('reg-email').value;
     const pass = document.getElementById('reg-password').value;
-    const appId = document.getElementById('reg-appid').value;
-    const gemini = document.getElementById('reg-gemini').value;
+    // AppId, GeminiKeyは送信しない
     const btn = document.getElementById('reg-btn');
 
     btn.disabled = true;
     btn.textContent = '送信中...';
 
     try {
-        const res = await callApi('register', { email, password: pass, appId, geminiKey: gemini });
+        const res = await callApi('register', { email, password: pass });
         alert(res.message);
         if (res.success) {
             showLogin();
@@ -149,7 +127,8 @@ async function loadDashboardData() {
     container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">商品を読み込み中...</div>';
 
     try {
-        const res = await callApi('getDashboardData', { appId: currentUser.appId }, 'GET');
+        // AppIdは送信しない
+        const res = await callApi('getDashboardData', {}, 'GET');
         if (res.success) {
             container.innerHTML = '';
             Object.keys(res.data).forEach(genre => {
@@ -200,9 +179,10 @@ function openItemModal(item) {
     <div style="text-align:center; color:#666;">AI紹介文を生成中...</div>
   `;
 
-    callApi('generateRecommendation', { itemName: item.name, geminiKey: currentUser.geminiKey })
+    // GeminiKeyは送信しない
+    callApi('generateRecommendation', { itemName: item.name })
         .then(res => {
-            if (!res.success) throw new Error(res.message);
+            if (!res.success) throw new Error(res.message); // エラーメッセージが返ってきた場合
 
             const text = res.data;
             const roomUrl = `https://room.rakuten.co.jp/mix?itemcode=${item.code.replace(/:/g, '%3A')}&scid=we_room_upc60`;
