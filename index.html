@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rakuten ROOM Assistant</title>
   <link rel="stylesheet" href="style.css">
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body>
@@ -15,7 +17,10 @@
     <div class="logo">ROOM Assistant</div>
     <div class="user-menu">
       <span id="header-email" class="user-email"></span>
-      <button class="btn" style="width:auto; padding:0.5rem 1rem; font-size:0.9rem;" onclick="logout()">ログアウト</button>
+      <button class="icon-btn" onclick="showSettings()" title="設定">
+        <i class="fas fa-cog"></i>
+      </button>
+      <button class="btn logout-btn" onclick="logout()">ログアウト</button>
     </div>
   </header>
 
@@ -64,8 +69,38 @@
 
     <!-- Dashboard View -->
     <div id="dashboard-view" style="display: none;">
+
+      <!-- Premium Search Bar -->
+      <div id="search-section" class="search-container hidden">
+        <form onsubmit="handleSearch(event)" class="search-form">
+          <div class="search-input-group">
+            <input type="text" id="search-keyword" placeholder="キーワードまたは楽天市場のURLを入力..." required>
+            <select id="search-genre">
+              <option value="">全ジャンル</option>
+              <option value="211742">家電</option>
+              <option value="100371">レディース</option>
+              <option value="100227">食品</option>
+              <option value="100939">コスメ</option>
+              <option value="100804">インテリア</option>
+              <option value="101240">CD・DVD</option>
+              <option value="100026">パソコン・周辺機器</option>
+            </select>
+          </div>
+          <button type="submit" class="btn search-btn"><i class="fas fa-search"></i> 検索</button>
+        </form>
+      </div>
+
+      <!-- Premium Promo (Visible for Free users) -->
+      <div id="premium-promo" class="promo-banner hidden">
+        <div class="promo-content">
+          <h3><i class="fas fa-crown"></i> プレミアム機能を使ってみませんか？</h3>
+          <p>商品検索、URL投稿、AIキャラクター設定など、便利な機能が解放されます。</p>
+          <button class="btn promo-btn" onclick="showSettings()">設定からアップグレード</button>
+        </div>
+      </div>
+
       <div id="dashboard-content">
-        <!-- Genres will be loaded here -->
+        <!-- Genres/Search Results will be loaded here -->
       </div>
     </div>
   </main>
@@ -74,6 +109,38 @@
   <div id="modal" class="modal-overlay" style="display: none;">
     <div class="modal" id="modal-content">
       <!-- Item details loaded here -->
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay" style="display: none;">
+    <div class="modal settings-modal-content">
+      <button class="modal-close" onclick="closeSettings()">&times;</button>
+      <h2 class="settings-title">設定</h2>
+
+      <div class="settings-section">
+        <h3>プラン設定</h3>
+        <div class="plan-toggle">
+          <span id="plan-label-free" class="plan-label active">Free</span>
+          <label class="switch">
+            <input type="checkbox" id="plan-toggle-input" onchange="togglePlan()">
+            <span class="slider round"></span>
+          </label>
+          <span id="plan-label-premium" class="plan-label"><i class="fas fa-crown"></i> Premium</span>
+        </div>
+        <p class="settings-desc">スイッチをONにするとプレミアム機能（検索、URL投稿、カスタムAI）が有効になります。</p>
+      </div>
+
+      <div id="premium-settings" class="settings-section hidden">
+        <h3>AIキャラクター設定</h3>
+        <p class="settings-desc">AIの口調やキャラクターを設定できます。（例：「関西弁の元気なオカン」「辛口のガジェット評論家」など）</p>
+        <textarea id="custom-prompt" rows="3"
+          placeholder="例：あなたは20代の美容系インフルエンサーです。絵文字を多用して、テンション高めに紹介してください。"></textarea>
+      </div>
+
+      <div class="settings-actions">
+        <button class="btn" onclick="saveSettings()" id="save-settings-btn">保存する</button>
+      </div>
     </div>
   </div>
 
