@@ -5,7 +5,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwnjcvWp50ZiJrzVWfODy8T
 
 // Init
 window.onload = function () {
-    // API_URLチェックは不要になったため削除
     const savedUser = localStorage.getItem('room_user');
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
@@ -37,8 +36,6 @@ async function callApi(action, params = {}, method = 'POST') {
 }
 
 // Navigation
-// Setup関連の関数は削除
-
 function showLogin() {
     hideAll();
     document.getElementById('login-view').classList.remove('hidden');
@@ -58,7 +55,6 @@ function showDashboard() {
 }
 
 function hideAll() {
-    // setup-view 削除
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('register-view').classList.add('hidden');
     document.getElementById('dashboard-view').style.display = 'none';
@@ -102,7 +98,6 @@ async function handleRegister(e) {
     e.preventDefault();
     const email = document.getElementById('reg-email').value;
     const pass = document.getElementById('reg-password').value;
-    // AppId, GeminiKeyは送信しない
     const btn = document.getElementById('reg-btn');
 
     btn.disabled = true;
@@ -127,7 +122,6 @@ async function loadDashboardData() {
     container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">商品を読み込み中...</div>';
 
     try {
-        // AppIdは送信しない
         const res = await callApi('getDashboardData', {}, 'GET');
         if (res.success) {
             container.innerHTML = '';
@@ -179,10 +173,9 @@ function openItemModal(item) {
     <div style="text-align:center; color:#666;">AI紹介文を生成中...</div>
   `;
 
-    // GeminiKeyは送信しない
     callApi('generateRecommendation', { itemName: item.name })
         .then(res => {
-            if (!res.success) throw new Error(res.message); // エラーメッセージが返ってきた場合
+            if (!res.success) throw new Error(res.message);
 
             const text = res.data;
             const roomUrl = `https://room.rakuten.co.jp/mix?itemcode=${item.code.replace(/:/g, '%3A')}&scid=we_room_upc60`;
@@ -211,12 +204,21 @@ function openItemModal(item) {
 
 function copyAndOpen(url) {
     const text = document.getElementById('copy-target').innerText;
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('コピーしました！ROOMを開きます...');
-        setTimeout(() => {
-            window.open(url, '_blank');
-        }, 1000);
-    });
+
+    // モバイル対応: ポップアップブロックを回避するため、非同期処理(setTimeout)を使わずに遷移する
+    // クリップボード書き込みは試みるが、失敗しても遷移を優先する
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            showToast('コピーしました！ROOMを開きます...');
+            // アプリへのディープリンクは location.href の方が確実に動作する場合が多い
+            window.location.href = url;
+        })
+        .catch(err => {
+            console.error('Copy failed', err);
+            showToast('コピーに失敗しました。手動でコピーしてください。');
+            // コピー失敗してもROOMは開く
+            window.location.href = url;
+        });
 }
 
 function closeModal() {
