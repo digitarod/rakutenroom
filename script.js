@@ -13,6 +13,7 @@ window.onload = function () {
     } else {
         showLogin();
     }
+    loadGenres();
 };
 
 // API Helper
@@ -34,6 +35,33 @@ async function callApi(action, params = {}, method = 'POST') {
     const res = await fetch(url, options);
     const json = await res.json();
     return json;
+}
+
+// Load Genres
+async function loadGenres() {
+    try {
+        const res = await callApi('getGenres', {}, 'GET');
+        if (res.success) {
+            allGenres = res.data;
+            populateGenreSelects();
+        }
+    } catch (err) {
+        console.error('ジャンル読み込みエラー:', err);
+    }
+}
+
+function populateGenreSelects() {
+    const rankingSelect = document.getElementById('ranking-genre');
+    const searchSelect = document.getElementById('search-genre');
+
+    // Ranking select
+    rankingSelect.innerHTML = allGenres.map(g =>
+        `<option value="${g.id}">${g.name}</option>`
+    ).join('');
+
+    // Search select (with "全ジャンル" option)
+    searchSelect.innerHTML = '<option value="">全ジャンル</option>' +
+        allGenres.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
 }
 
 // Navigation
@@ -76,7 +104,6 @@ function showSettings() {
 
     const isPremium = currentUser.plan === 'Premium';
 
-    // ラジオボタンの状態を設定
     const radios = document.getElementsByName('plan');
     for (const radio of radios) {
         if (radio.value === (isPremium ? 'Premium' : 'Free')) {
@@ -112,13 +139,16 @@ function updatePremiumUI() {
     const isPremium = currentUser.plan === 'Premium';
     const toolbar = document.getElementById('premium-toolbar');
     const promoBanner = document.getElementById('premium-promo');
+    const homeRefresh = document.getElementById('home-refresh');
 
     if (isPremium) {
         toolbar.classList.remove('hidden');
         promoBanner.classList.add('hidden');
+        homeRefresh.classList.add('hidden');
     } else {
         toolbar.classList.add('hidden');
         promoBanner.classList.remove('hidden');
+        homeRefresh.classList.remove('hidden');
     }
 }
 
@@ -192,7 +222,7 @@ async function saveSettings() {
     btn.textContent = '保存中...';
 
     const selected = document.querySelector('input[name="plan"]:checked').value;
-    const plan = selected; // 'Free' or 'Premium'
+    const plan = selected;
     const customPrompt = document.getElementById('custom-prompt').value;
 
     try {
@@ -223,18 +253,24 @@ async function saveSettings() {
 async function loadRankingByGenre() {
     const genreId = document.getElementById('ranking-genre').value;
     const genreName = document.getElementById('ranking-genre').options[document.getElementById('ranking-genre').selectedIndex].text;
+    const minPrice = document.getElementById('ranking-min-price').value;
+    const maxPrice = document.getElementById('ranking-max-price').value;
     const container = document.getElementById('dashboard-content');
 
     container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">ランキング読み込み中...</div>';
 
     try {
-        const res = await callApi('getRanking', { genreId }, 'GET');
+        const res = await callApi('getRanking', { genreId, minPrice, maxPrice }, 'GET');
         if (res.success) {
             container.innerHTML = '';
             if (res.data.length > 0) {
-                renderGenreSection(container, `${genreName} ランキング`, res.data);
+                let header = `${genreName} ランキング`;
+                if (minPrice || maxPrice) {
+                    header += ` (${minPrice || '0'}円〜${maxPrice || '上限なし'}円)`;
+                }
+                renderGenreSection(container, header, res.data);
             } else {
-                container.innerHTML = '<div style="text-align:center; padding:2rem;">ランキングデータがありませんでした。</div>';
+                container.innerHTML = '<div style="text-align:center; padding:2rem;">該当する商品がありませんでした。価格帯を変更してみてください。</div>';
             }
         } else {
             throw new Error(res.message);
@@ -249,10 +285,19 @@ async function handleSearch(e, type) {
     const container = document.getElementById('dashboard-content');
     let keyword = '';
     let message = '';
+    let minPrice = 0;
+    let maxPrice = 0;
+    let genreId = '';
 
     if (type === 'keyword') {
         keyword = document.getElementById('search-keyword').value;
+        genreId = document.getElementById('search-genre').value;
+        minPrice = document.getElementById('search-min-price').value;
+        maxPrice = document.getElementById('search-max-price').value;
         message = `検索結果: ${keyword}`;
+        if (minPrice || maxPrice) {
+            message += ` (${minPrice || '0'}円〜${maxPrice || '上限なし'}円)`;
+        }
     } else if (type === 'url') {
         keyword = document.getElementById('search-url').value;
         message = 'URL検索結果';
@@ -261,7 +306,7 @@ async function handleSearch(e, type) {
     container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">商品を検索中...</div>';
 
     try {
-        const res = await callApi('searchItems', { keyword });
+        const res = await callApi('searchItems', { keyword, genreId, minPrice, maxPrice });
         if (res.success) {
             container.innerHTML = '';
             if (res.data.length > 0) {
