@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API 接続テスト</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        input,
+        button {
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #result {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            min-height: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Gemini API 接続テスト (ブラウザ直接実行)</h2>
+    <p>GASを経由せず、ブラウザから直接Gemini APIを呼び出して、キーが有効か確認します。</p>
+
+    <label>Gemini API Key:</label>
+    <input type="text" id="apiKey" placeholder="AIzaSy..." value="">
+
+    <label>商品名:</label>
+    <input type="text" id="itemName" value="ワイヤレスイヤホン">
+
+    <button onclick="runTest()">テスト実行</button>
+
+    <h3>実行結果:</h3>
+    <div id="result">ここに結果が表示されます</div>
+
+    <script>
+        async function runTest() {
+            const key = document.getElementById('apiKey').value.trim();
+            const item = document.getElementById('itemName').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!key) {
+                alert("APIキーを入力してください");
+                return;
+            }
+
+            resultDiv.textContent = "送信中...";
+            resultDiv.style.color = "black";
+
+            // gemini-1.5-flash を使用
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+            const prompt = `以下の商品を楽天ROOMで紹介するための、魅力的でクリックしたくなるような短い紹介文（140文字以内）を作成してください。絵文字とハッシュタグも含めてください。\n商品名: ${item}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                console.log(data);
+
+                if (data.error) {
+                    resultDiv.textContent = "APIエラー:\n" + JSON.stringify(data.error, null, 2);
+                    resultDiv.style.color = "red";
+                } else if (data.candidates && data.candidates.length > 0) {
+                    resultDiv.textContent = "成功:\n" + data.candidates[0].content.parts[0].text;
+                    resultDiv.style.color = "green";
+                } else {
+                    resultDiv.textContent = "予期せぬレスポンス:\n" + JSON.stringify(data, null, 2);
+                    resultDiv.style.color = "orange";
+                }
+
+            } catch (e) {
+                resultDiv.textContent = "通信エラー:\n" + e.message;
+                resultDiv.style.color = "red";
+            }
+        }
+    </script>
+</body>
+
+</html>
