@@ -1,14 +1,13 @@
 // State
 let currentUser = null;
 // GASのURLをハードコーディング
-const API_URL = 'https://script.google.com/macros/s/AKfycbwfY0UxnonIBCeBWJw1kUZ1crR79wz0usFA2BNI7AnYvzh7ZNNvOI3PzK2PUwu-P10T/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwUHfnXJtKs36xTuk0Zf9qNzOAXPLdlrJBJjUNQuII0R201hKgC1RcsR4CRQb_zwuLC/exec';
 
 // Init
 window.onload = function () {
     const savedUser = localStorage.getItem('room_user');
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
-        // 後方互換性: 古いデータにplanがない場合はFreeとする
         if (!currentUser.plan) currentUser.plan = 'Free';
         showDashboard();
     } else {
@@ -75,9 +74,16 @@ function showSettings() {
     const modal = document.getElementById('settings-modal');
     modal.style.display = 'flex';
 
-    // 現在の設定を反映
     const isPremium = currentUser.plan === 'Premium';
-    document.getElementById('plan-toggle-input').checked = isPremium;
+
+    // ラジオボタンの状態を設定
+    const radios = document.getElementsByName('plan');
+    for (const radio of radios) {
+        if (radio.value === (isPremium ? 'Premium' : 'Free')) {
+            radio.checked = true;
+        }
+    }
+
     document.getElementById('custom-prompt').value = currentUser.customPrompt || '';
 
     updateSettingsUI(isPremium);
@@ -88,38 +94,46 @@ function closeSettings() {
 }
 
 function togglePlan() {
-    const isPremium = document.getElementById('plan-toggle-input').checked;
+    const selected = document.querySelector('input[name="plan"]:checked').value;
+    const isPremium = selected === 'Premium';
     updateSettingsUI(isPremium);
 }
 
 function updateSettingsUI(isPremium) {
-    const freeLabel = document.getElementById('plan-label-free');
-    const premiumLabel = document.getElementById('plan-label-premium');
     const premiumSettings = document.getElementById('premium-settings');
-
     if (isPremium) {
-        freeLabel.classList.remove('active');
-        premiumLabel.classList.add('active');
         premiumSettings.classList.remove('hidden');
     } else {
-        freeLabel.classList.add('active');
-        premiumLabel.classList.remove('active');
         premiumSettings.classList.add('hidden');
     }
 }
 
 function updatePremiumUI() {
     const isPremium = currentUser.plan === 'Premium';
-    const searchSection = document.getElementById('search-section');
+    const toolbar = document.getElementById('premium-toolbar');
     const promoBanner = document.getElementById('premium-promo');
 
     if (isPremium) {
-        searchSection.classList.remove('hidden');
+        toolbar.classList.remove('hidden');
         promoBanner.classList.add('hidden');
     } else {
-        searchSection.classList.add('hidden');
+        toolbar.classList.add('hidden');
         promoBanner.classList.remove('hidden');
     }
+}
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`).classList.add('active');
+
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+        content.classList.add('hidden');
+    });
+
+    const target = document.getElementById(`tab-${tabId}`);
+    target.classList.remove('hidden');
+    target.classList.add('active');
 }
 
 // Handlers
@@ -177,8 +191,8 @@ async function saveSettings() {
     btn.disabled = true;
     btn.textContent = '保存中...';
 
-    const isPremium = document.getElementById('plan-toggle-input').checked;
-    const plan = isPremium ? 'Premium' : 'Free';
+    const selected = document.querySelector('input[name="plan"]:checked').value;
+    const plan = selected; // 'Free' or 'Premium'
     const customPrompt = document.getElementById('custom-prompt').value;
 
     try {
@@ -194,7 +208,6 @@ async function saveSettings() {
             showToast('設定を保存しました');
             closeSettings();
             updatePremiumUI();
-            // 設定変更後はダッシュボードをリロードして反映させる
             loadDashboardData();
         } else {
             showToast(res.message);
@@ -207,20 +220,55 @@ async function saveSettings() {
     }
 }
 
-async function handleSearch(e) {
-    e.preventDefault();
-    const keyword = document.getElementById('search-keyword').value;
-    const genreId = document.getElementById('search-genre').value;
+async function loadRankingByGenre() {
+    const genreId = document.getElementById('ranking-genre').value;
+    const genreName = document.getElementById('ranking-genre').options[document.getElementById('ranking-genre').selectedIndex].text;
     const container = document.getElementById('dashboard-content');
 
-    container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">検索中...</div>';
+    container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">ランキング読み込み中...</div>';
 
     try {
-        const res = await callApi('searchItems', { keyword, genreId });
+        const res = await callApi('getRanking', { genreId }, 'GET');
         if (res.success) {
             container.innerHTML = '';
             if (res.data.length > 0) {
-                renderGenreSection(container, `検索結果: ${keyword}`, res.data);
+                renderGenreSection(container, `${genreName} ランキング`, res.data);
+            } else {
+                container.innerHTML = '<div style="text-align:center; padding:2rem;">ランキングデータがありませんでした。</div>';
+            }
+        } else {
+            throw new Error(res.message);
+        }
+    } catch (err) {
+        container.innerHTML = `<div style="color:red; text-align:center">読み込みエラー: ${err.message}</div>`;
+    }
+}
+
+async function handleSearch(e, type) {
+    e.preventDefault();
+    const container = document.getElementById('dashboard-content');
+    let keyword = '';
+    let message = '';
+
+    if (type === 'keyword') {
+        keyword = document.getElementById('search-keyword').value;
+        message = `検索結果: ${keyword}`;
+    } else if (type === 'url') {
+        keyword = document.getElementById('search-url').value;
+        message = 'URL検索結果';
+    }
+
+    container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">商品を検索中...</div>';
+
+    try {
+        const res = await callApi('searchItems', { keyword });
+        if (res.success) {
+            container.innerHTML = '';
+            if (res.data.length > 0) {
+                renderGenreSection(container, message, res.data);
+                if (type === 'url' && res.data.length === 1) {
+                    openItemModal(res.data[0]);
+                }
             } else {
                 container.innerHTML = '<div style="text-align:center; padding:2rem;">該当する商品が見つかりませんでした。</div>';
             }
@@ -234,8 +282,6 @@ async function handleSearch(e) {
 
 async function loadDashboardData() {
     const container = document.getElementById('dashboard-content');
-    // 検索結果が表示されている場合はリロードしない（簡易実装）
-    // ただし、初期表示や設定変更後はリロードしたい
     container.innerHTML = '<div class="loading-spinner"></div><div style="text-align:center">商品を読み込み中...</div>';
 
     try {
@@ -290,7 +336,6 @@ function openItemModal(item) {
     <div style="text-align:center; color:#666;">AI紹介文を生成中...</div>
   `;
 
-    // カスタムプロンプトを渡す
     const customPrompt = currentUser.plan === 'Premium' ? currentUser.customPrompt : '';
 
     callApi('generateRecommendation', { itemName: item.name, customPrompt: customPrompt })
